@@ -4,6 +4,7 @@
   "zoom": 17,
   "classes": [
     { "name": "residential", "filter": ["==", "building", "residential"] , "buffer":3},
+    { "name": "apartment", "filter": ["==", "building", "apartment"], "buffer":3},  
     { "name": "house", "filter": ["==", "building", "house"] , "buffer":3},
     { "name": "farm", "filter": ["==", "building", "farm"] , "buffer":3},
     { "name": "detached", "filter": ["==", "building", "detached"] , "buffer":3},
@@ -16,7 +17,6 @@
     { "name": "office", "filter": ["==", "building", "office"] , "buffer":3},
     { "name": "industrial", "filter": ["==", "building", "industrial"] , "buffer":3},
     { "name": "retail", "filter": ["==", "building", "retail"] , "buffer":3},
-    { "name": "cabin", "filter": ["==", "building", "cabin"] , "buffer":3},
     { "name": "supermarket", "filter": ["==", "building", "supermarket"] , "buffer":3},
     { "name": "warehouse", "filter": ["==", "building", "warehouse"] , "buffer":3},
     { "name": "kiosk", "filter": ["==", "building", "kiosk"] , "buffer":3},
