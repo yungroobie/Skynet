@@ -4,13 +4,8 @@ from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 # Load MNIST dataset -----------------------------------------------------------
 (X_train, y_train), (X_test, y_test) = keras.datasets.mnist.load_data()
 # Preprocessing ----------------------------------------------------------------
-<<<<<<< HEAD
 X_train = X_train.reshape(-1, 28, 28, 1).astype('float32') / 255
 X_test = X_test.reshape(-1, 28, 28, 1).astype('float32') / 255
-=======
-X_train = X_train.reshape(-1, 28, 28, 1).astype('float16') / 255
-X_test = X_test.reshape(-1, 28, 28, 1).astype('float16') / 255
->>>>>>> 4db03eb418726a86ac56647343ff78ba6625c4ca
 # Define the model -------------------------------------------------------------
 model = keras.models.Sequential()
 
