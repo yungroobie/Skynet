@@ -28,3 +28,10 @@ score = model.evaluate(X_test, y_test)
 print('Test accuracy:', score[1])
 # Save model -------------------------------------------------------------------
 model.save('mnist.h5')
+
+model2 = keras.models.load_model('mnist.h5')
+preds = model2.predict(X_test)
+import matplotlib.pyplot as plt
+plt.imshow(X_test[0], cmap='binary')
+plt.show()
+print(preds[0])
