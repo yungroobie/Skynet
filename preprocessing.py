@@ -8,60 +8,11 @@ from keras.utils import Sequence
 import xml.etree.ElementTree as ET
 from utils import BoundBox, bbox_iou
 
-def parse_annotation(ann_dir, img_dir, labels=[]):
-    all_imgs = []
-    seen_labels = {}
-    
-    for ann in sorted(os.listdir(ann_dir)):
-        img = {'object':[]}
-
-        tree = ET.parse(ann_dir + ann)
-        
-        for elem in tree.iter():
-            if 'filename' in elem.tag:
-                img['filename'] = img_dir + elem.text
-            if 'width' in elem.tag:
-                img['width'] = int(elem.text)
-            if 'height' in elem.tag:
-                img['height'] = int(elem.text)
-            if 'object' in elem.tag or 'part' in elem.tag:
-                obj = {}
-                
-                for attr in list(elem):
-                    if 'name' in attr.tag:
-                        obj['name'] = attr.text
-
-                        if obj['name'] in seen_labels:
-                            seen_labels[obj['name']] += 1
-                        else:
-                            seen_labels[obj['name']] = 1
-                        
-                        if len(labels) > 0 and obj['name'] not in labels:
-                            break
-                        else:
-                            img['object'] += [obj]
-                            
-                    if 'bndbox' in attr.tag:
-                        for dim in list(attr):
-                            if 'xmin' in dim.tag:
-                                obj['xmin'] = int(round(float(dim.text)))
-                            if 'ymin' in dim.tag:
-                                obj['ymin'] = int(round(float(dim.text)))
-                            if 'xmax' in dim.tag:
-                                obj['xmax'] = int(round(float(dim.text)))
-                            if 'ymax' in dim.tag:
-                                obj['ymax'] = int(round(float(dim.text)))
-
-        if len(img['object']) > 0:
-            all_imgs += [img]
-                        
-    return all_imgs, seen_labels
-
 class BatchGenerator(Sequence):
     def __init__(self, images, 
                        config, 
-                       shuffle=True, 
-                       jitter=True, 
+                       shuffle=False, 
+                       jitter=False, 
                        norm=None):
         self.generator = None
 
@@ -132,30 +83,14 @@ class BatchGenerator(Sequence):
             random_order=True
         )
 
-        if shuffle: np.random.shuffle(self.images)
-
     def __len__(self):
-        return int(np.ceil(float(len(self.images))/self.config['BATCH_SIZE']))   
+        return int(np.ceil(float(len(self.images)) / self.config['BATCH_SIZE']))   
 
     def num_classes(self):
         return len(self.config['LABELS'])
 
     def size(self):
         return len(self.images)    
-
-    def load_annotation(self, i):
-        annots = []
-
-        for obj in self.images[i]['object']:
-            annot = [obj['xmin'], obj['ymin'], obj['xmax'], obj['ymax'], self.config['LABELS'].index(obj['name'])]
-            annots += [annot]
-
-        if len(annots) == 0: annots = [[]]
-
-        return np.array(annots)
-
-    def load_image(self, i):
-        return cv2.imread(self.images[i]['filename'])
 
     def __getitem__(self, idx):
         l_bound = idx*self.config['BATCH_SIZE']
@@ -179,20 +114,20 @@ class BatchGenerator(Sequence):
             true_box_index = 0
             
             for obj in all_objs:
-                if obj['xmax'] > obj['xmin'] and obj['ymax'] > obj['ymin'] and obj['name'] in self.config['LABELS']:
-                    center_x = .5*(obj['xmin'] + obj['xmax'])
+                if obj[2] > obj[0] and obj[3] > obj[1] and obj[4] in self.config['LABELS']:
+                    center_x = .5*(obj[0] + obj[2])
                     center_x = center_x / (float(self.config['IMAGE_W']) / self.config['GRID_W'])
-                    center_y = .5*(obj['ymin'] + obj['ymax'])
+                    center_y = .5*(obj[1] + obj[3])
                     center_y = center_y / (float(self.config['IMAGE_H']) / self.config['GRID_H'])
 
                     grid_x = int(np.floor(center_x))
                     grid_y = int(np.floor(center_y))
 
                     if grid_x < self.config['GRID_W'] and grid_y < self.config['GRID_H']:
-                        obj_indx  = self.config['LABELS'].index(obj['name'])
+                        obj_indx  = self.config['LABELS'].index(obj[4])
                         
-                        center_w = (obj['xmax'] - obj['xmin']) / (float(self.config['IMAGE_W']) / self.config['GRID_W']) # unit: grid cell
-                        center_h = (obj['ymax'] - obj['ymin']) / (float(self.config['IMAGE_H']) / self.config['GRID_H']) # unit: grid cell
+                        center_w = (obj[2] - obj[0]) / (float(self.config['IMAGE_W']) / self.config['GRID_W']) # unit: grid cell
+                        center_h = (obj[3] - obj[1]) / (float(self.config['IMAGE_H']) / self.config['GRID_H']) # unit: grid cell
                         
                         box = [center_x, center_y, center_w, center_h]
 
@@ -230,10 +165,10 @@ class BatchGenerator(Sequence):
             else:
                 # plot image and bounding boxes for sanity check
                 for obj in all_objs:
-                    if obj['xmax'] > obj['xmin'] and obj['ymax'] > obj['ymin']:
-                        cv2.rectangle(img[:,:,::-1], (obj['xmin'],obj['ymin']), (obj['xmax'],obj['ymax']), (255,0,0), 3)
-                        cv2.putText(img[:,:,::-1], obj['name'], 
-                                    (obj['xmin']+2, obj['ymin']+12), 
+                    if obj[2] > obj[0] and obj[3] > obj[1]:
+                        cv2.rectangle(img[:,:,::-1], (obj[0],obj[1]), (obj[2],obj[3]), (255,0,0), 3)
+                        cv2.putText(img[:,:,::-1], obj[4], 
+                                    (obj[0]+2, obj[1]+12), 
                                     0, 1.2e-3 * img.shape[0], 
                                     (0,255,0), 2)
                         
@@ -250,13 +185,12 @@ class BatchGenerator(Sequence):
         if self.shuffle: np.random.shuffle(self.images)
 
     def aug_image(self, train_instance, jitter):
-        image_name = train_instance['filename']
-        image = cv2.imread(image_name)
+        image = train_instance[0]
 
         if image is None: print('Cannot find ', image_name)
 
         h, w, c = image.shape
-        all_objs = copy.deepcopy(train_instance['object'])
+        all_objs = train_instance[1]
 
         if jitter:
             ### scale the image
@@ -283,21 +217,21 @@ class BatchGenerator(Sequence):
 
         # fix object's position and size
         for obj in all_objs:
-            for attr in ['xmin', 'xmax']:
+            for attr in [0, 2]:
                 if jitter: obj[attr] = int(obj[attr] * scale - offx)
                     
                 obj[attr] = int(obj[attr] * float(self.config['IMAGE_W']) / w)
                 obj[attr] = max(min(obj[attr], self.config['IMAGE_W']), 0)
                 
-            for attr in ['ymin', 'ymax']:
+            for attr in [1, 3]:
                 if jitter: obj[attr] = int(obj[attr] * scale - offy)
                     
                 obj[attr] = int(obj[attr] * float(self.config['IMAGE_H']) / h)
                 obj[attr] = max(min(obj[attr], self.config['IMAGE_H']), 0)
 
             if jitter and flip > 0.5:
-                xmin = obj['xmin']
-                obj['xmin'] = self.config['IMAGE_W'] - obj['xmax']
-                obj['xmax'] = self.config['IMAGE_W'] - xmin
+                xmin = obj[0]
+                obj[0] = self.config['IMAGE_W'] - obj[2]
+                obj[2] = self.config['IMAGE_W'] - xmin
                 
         return image, all_objs

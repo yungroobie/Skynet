@@ -8,15 +8,14 @@ import matplotlib.pyplot as plt
 import keras.backend as K
 import tensorflow as tf
 import imgaug as ia
-from tqdm import tqdm
 from imgaug import augmenters as iaa
 import numpy as np
 import pickle
 import os, cv2
-from preprocessing import parse_annotation, BatchGenerator
+from preprocessing import BatchGenerator
 from utils import WeightReader, decode_netout, draw_boxes
 
-LABELS = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
+LABELS = ['residential', 'other']
 
 IMAGE_H, IMAGE_W = 416, 416
 GRID_H,  GRID_W  = 13 , 13
@@ -37,10 +36,6 @@ WARM_UP_BATCHES  = 0
 TRUE_BOX_BUFFER  = 50
 
 wt_path = 'yolov2.weights'                      
-train_image_folder = '/home/andy/data/coco/train2014/'
-train_annot_folder = '/home/andy/data/coco/train2014ann/'
-valid_image_folder = '/home/andy/data/coco/val2014/'
-valid_annot_folder = '/home/andy/data/coco/val2014ann/'
 
 def space_to_depth_x2(x):
     return tf.space_to_depth(x, block_size=2)
@@ -305,7 +300,7 @@ def custom_loss(y_true, y_pred):
     pred_mins    = pred_xy - pred_wh_half
     pred_maxes   = pred_xy + pred_wh_half    
 
-   intersect_mins  = tf.maximum(pred_mins,  true_mins)
+    intersect_mins  = tf.maximum(pred_mins,  true_mins)
     intersect_maxes = tf.minimum(pred_maxes, true_maxes)
     intersect_wh    = tf.maximum(intersect_maxes - intersect_mins, 0.)
     intersect_areas = intersect_wh[..., 0] * intersect_wh[..., 1]
@@ -357,21 +352,6 @@ def custom_loss(y_true, y_pred):
     
     nb_true_box = tf.reduce_sum(y_true[..., 4])
     nb_pred_box = tf.reduce_sum(tf.to_float(true_box_conf > 0.5) * tf.to_float(pred_box_conf > 0.3))
-
-    """
-    Debugging code
-    """    
-    current_recall = nb_pred_box/(nb_true_box + 1e-6)
-    total_recall = tf.assign_add(total_recall, current_recall) 
-
-    loss = tf.Print(loss, [tf.zeros((1))], message='Dummy Line \t', summarize=1000)
-    loss = tf.Print(loss, [loss_xy], message='Loss XY \t', summarize=1000)
-    loss = tf.Print(loss, [loss_wh], message='Loss WH \t', summarize=1000)
-    loss = tf.Print(loss, [loss_conf], message='Loss Conf \t', summarize=1000)
-    loss = tf.Print(loss, [loss_class], message='Loss Class \t', summarize=1000)
-    loss = tf.Print(loss, [loss], message='Total Loss \t', summarize=1000)
-    loss = tf.Print(loss, [current_recall], message='Current Recall \t', summarize=1000)
-    loss = tf.Print(loss, [total_recall/seen], message='Average Recall \t', summarize=1000)
     
     return loss
 
@@ -391,25 +371,10 @@ generator_config = {
 def normalize(image):
     return image / 255.
 
-train_imgs, seen_train_labels = parse_annotation(train_annot_folder, train_image_folder, labels=LABELS)
-### write parsed annotations to pickle for fast retrieval next time
-#with open('train_imgs', 'wb') as fp:
-#    pickle.dump(train_imgs, fp)
+data = np.load('formatted_data.npy')
+train_batch = BatchGenerator(data, generator_config, norm=normalize)
 
-### read saved pickle of parsed annotations
-#with open ('train_imgs', 'rb') as fp:
-#    train_imgs = pickle.load(fp)
-train_batch = BatchGenerator(train_imgs, generator_config, norm=normalize)
-
-valid_imgs, seen_valid_labels = parse_annotation(valid_annot_folder, valid_image_folder, labels=LABELS)
-### write parsed annotations to pickle for fast retrieval next time
-#with open('valid_imgs', 'wb') as fp:
-#    pickle.dump(valid_imgs, fp)
-
-### read saved pickle of parsed annotations
-#with open ('valid_imgs', 'rb') as fp:
-#    valid_imgs = pickle.load(fp)
-valid_batch = BatchGenerator(valid_imgs, generator_config, norm=normalize, jitter=False)
+#valid_batch = BatchGenerator(valid_imgs, generator_config, norm=normalize, jitter=False)
 
 early_stop = EarlyStopping(monitor='val_loss', 
                            min_delta=0.001, 
@@ -424,11 +389,11 @@ checkpoint = ModelCheckpoint('weights_coco.h5',
                              mode='min', 
                              period=1)
 
-tb_counter  = len([log for log in os.listdir(os.path.expanduser('~/logs/')) if 'coco_' in log]) + 1
-tensorboard = TensorBoard(log_dir=os.path.expanduser('~/logs/') + 'coco_' + '_' + str(tb_counter), 
-                          histogram_freq=0, 
-                          write_graph=True, 
-                          write_images=False)
+# tb_counter  = len([log for log in os.listdir(os.path.expanduser('~/logs/')) if 'coco_' in log]) + 1
+# tensorboard = TensorBoard(log_dir=os.path.expanduser('~/logs/') + 'coco_' + '_' + str(tb_counter), 
+#                           histogram_freq=0, 
+#                           write_graph=True, 
+#                           write_images=False)
 
 optimizer = Adam(lr=0.5e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 #optimizer = SGD(lr=1e-4, decay=0.0005, momentum=0.9)
@@ -440,9 +405,9 @@ model.fit_generator(generator        = train_batch,
                     steps_per_epoch  = len(train_batch), 
                     epochs           = 100, 
                     verbose          = 1,
-                    validation_data  = valid_batch,
-                    validation_steps = len(valid_batch),
-                    callbacks        = [early_stop, checkpoint, tensorboard], 
+                   # validation_data  = valid_batch,
+                   # validation_steps = len(valid_batch),
+                    callbacks        = [early_stop, checkpoint], 
                     max_queue_size   = 3)
 
 model.load_weights("weights_coco.h5")
