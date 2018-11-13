@@ -24,8 +24,8 @@ GRID_H,  GRID_W  = 13 , 13
 BOX              = 5
 CLASS            = len(LABELS)
 CLASS_WEIGHTS    = np.ones(CLASS, dtype='float32')
-OBJ_THRESHOLD    = 0.3#0.5
-NMS_THRESHOLD    = 0.3#0.45
+OBJ_THRESHOLD    = 0.5
+NMS_THRESHOLD    = 0.45
 ANCHORS          = [0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828]
 
 NO_OBJECT_SCALE  = 1.0
@@ -40,8 +40,8 @@ TRUE_BOX_BUFFER  = 50
 wt_path = '/home/brian/git/Skynet/COCO/yolov2.weights'
 train_image_folder = '/home/brian/git/Skynet/train/'
 train_annot_folder = '/home/brian/git/Skynet/annots/'
-# valid_image_folder = '/home/brian/git/Skynet/COCO/val2014/'
-# valid_annot_folder = '/home/brian/git/Skynet/COCO/val2014/'
+valid_image_folder = '/home/brian/git/Skynet/val/'
+valid_annot_folder = '/home/brian/git/Skynet/val_annots/'
 
 
 def space_to_depth_x2(x):
@@ -49,136 +49,144 @@ def space_to_depth_x2(x):
 
 input_image = Input(shape=(IMAGE_H, IMAGE_W, 3))
 true_boxes  = Input(shape=(1, 1, 1, TRUE_BOX_BUFFER , 4))
-# Layer 1
-x = Conv2D(32, (3,3), strides=(1,1), padding='same', name='conv_1', use_bias=False)(input_image)
-x = BatchNormalization(name='norm_1')(x)
-x = LeakyReLU(alpha=0.1)(x)
-x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Layer 2
-x = Conv2D(64, (3,3), strides=(1,1), padding='same', name='conv_2', use_bias=False)(x)
-x = BatchNormalization(name='norm_2')(x)
-x = LeakyReLU(alpha=0.1)(x)
-x = MaxPooling2D(pool_size=(2, 2))(x)
+def make_model():
+    # Layer 1
+    x = Conv2D(32, (3,3), strides=(1,1), padding='same', name='conv_1', use_bias=False)(input_image)
+    x = BatchNormalization(name='norm_1')(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Layer 3
-x = Conv2D(128, (3,3), strides=(1,1), padding='same', name='conv_3', use_bias=False)(x)
-x = BatchNormalization(name='norm_3')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 2
+    x = Conv2D(64, (3,3), strides=(1,1), padding='same', name='conv_2', use_bias=False)(x)
+    x = BatchNormalization(name='norm_2')(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Layer 4
-x = Conv2D(64, (1,1), strides=(1,1), padding='same', name='conv_4', use_bias=False)(x)
-x = BatchNormalization(name='norm_4')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 3
+    x = Conv2D(128, (3,3), strides=(1,1), padding='same', name='conv_3', use_bias=False)(x)
+    x = BatchNormalization(name='norm_3')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 5
-x = Conv2D(128, (3,3), strides=(1,1), padding='same', name='conv_5', use_bias=False)(x)
-x = BatchNormalization(name='norm_5')(x)
-x = LeakyReLU(alpha=0.1)(x)
-x = MaxPooling2D(pool_size=(2, 2))(x)
+    # Layer 4
+    x = Conv2D(64, (1,1), strides=(1,1), padding='same', name='conv_4', use_bias=False)(x)
+    x = BatchNormalization(name='norm_4')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 6
-x = Conv2D(256, (3,3), strides=(1,1), padding='same', name='conv_6', use_bias=False)(x)
-x = BatchNormalization(name='norm_6')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 5
+    x = Conv2D(128, (3,3), strides=(1,1), padding='same', name='conv_5', use_bias=False)(x)
+    x = BatchNormalization(name='norm_5')(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Layer 7
-x = Conv2D(128, (1,1), strides=(1,1), padding='same', name='conv_7', use_bias=False)(x)
-x = BatchNormalization(name='norm_7')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 6
+    x = Conv2D(256, (3,3), strides=(1,1), padding='same', name='conv_6', use_bias=False)(x)
+    x = BatchNormalization(name='norm_6')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 8
-x = Conv2D(256, (3,3), strides=(1,1), padding='same', name='conv_8', use_bias=False)(x)
-x = BatchNormalization(name='norm_8')(x)
-x = LeakyReLU(alpha=0.1)(x)
-x = MaxPooling2D(pool_size=(2, 2))(x)
+    # Layer 7
+    x = Conv2D(128, (1,1), strides=(1,1), padding='same', name='conv_7', use_bias=False)(x)
+    x = BatchNormalization(name='norm_7')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 9
-x = Conv2D(512, (3,3), strides=(1,1), padding='same', name='conv_9', use_bias=False)(x)
-x = BatchNormalization(name='norm_9')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 8
+    x = Conv2D(256, (3,3), strides=(1,1), padding='same', name='conv_8', use_bias=False)(x)
+    x = BatchNormalization(name='norm_8')(x)
+    x = LeakyReLU(alpha=0.1)(x)
+    x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Layer 10
-x = Conv2D(256, (1,1), strides=(1,1), padding='same', name='conv_10', use_bias=False)(x)
-x = BatchNormalization(name='norm_10')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 9
+    x = Conv2D(512, (3,3), strides=(1,1), padding='same', name='conv_9', use_bias=False)(x)
+    x = BatchNormalization(name='norm_9')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 11
-x = Conv2D(512, (3,3), strides=(1,1), padding='same', name='conv_11', use_bias=False)(x)
-x = BatchNormalization(name='norm_11')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 10
+    x = Conv2D(256, (1,1), strides=(1,1), padding='same', name='conv_10', use_bias=False)(x)
+    x = BatchNormalization(name='norm_10')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 12
-x = Conv2D(256, (1,1), strides=(1,1), padding='same', name='conv_12', use_bias=False)(x)
-x = BatchNormalization(name='norm_12')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 11
+    x = Conv2D(512, (3,3), strides=(1,1), padding='same', name='conv_11', use_bias=False)(x)
+    x = BatchNormalization(name='norm_11')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 13
-x = Conv2D(512, (3,3), strides=(1,1), padding='same', name='conv_13', use_bias=False)(x)
-x = BatchNormalization(name='norm_13')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 12
+    x = Conv2D(256, (1,1), strides=(1,1), padding='same', name='conv_12', use_bias=False)(x)
+    x = BatchNormalization(name='norm_12')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-skip_connection = x
+    # Layer 13
+    x = Conv2D(512, (3,3), strides=(1,1), padding='same', name='conv_13', use_bias=False)(x)
+    x = BatchNormalization(name='norm_13')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-x = MaxPooling2D(pool_size=(2, 2))(x)
+    skip_connection = x
 
-# Layer 14
-x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_14', use_bias=False)(x)
-x = BatchNormalization(name='norm_14')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    x = MaxPooling2D(pool_size=(2, 2))(x)
 
-# Layer 15
-x = Conv2D(512, (1,1), strides=(1,1), padding='same', name='conv_15', use_bias=False)(x)
-x = BatchNormalization(name='norm_15')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 14
+    x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_14', use_bias=False)(x)
+    x = BatchNormalization(name='norm_14')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 16
-x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_16', use_bias=False)(x)
-x = BatchNormalization(name='norm_16')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 15
+    x = Conv2D(512, (1,1), strides=(1,1), padding='same', name='conv_15', use_bias=False)(x)
+    x = BatchNormalization(name='norm_15')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 17
-x = Conv2D(512, (1,1), strides=(1,1), padding='same', name='conv_17', use_bias=False)(x)
-x = BatchNormalization(name='norm_17')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 16
+    x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_16', use_bias=False)(x)
+    x = BatchNormalization(name='norm_16')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 18
-x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_18', use_bias=False)(x)
-x = BatchNormalization(name='norm_18')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 17
+    x = Conv2D(512, (1,1), strides=(1,1), padding='same', name='conv_17', use_bias=False)(x)
+    x = BatchNormalization(name='norm_17')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 19
-x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_19', use_bias=False)(x)
-x = BatchNormalization(name='norm_19')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 18
+    x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_18', use_bias=False)(x)
+    x = BatchNormalization(name='norm_18')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 20
-x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_20', use_bias=False)(x)
-x = BatchNormalization(name='norm_20')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    # Layer 19
+    x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_19', use_bias=False)(x)
+    x = BatchNormalization(name='norm_19')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# Layer 21
-skip_connection = Conv2D(64, (1,1), strides=(1,1), padding='same', name='conv_21', use_bias=False)(skip_connection)
-skip_connection = BatchNormalization(name='norm_21')(skip_connection)
-skip_connection = LeakyReLU(alpha=0.1)(skip_connection)
-skip_connection = Lambda(space_to_depth_x2)(skip_connection)
+    # Layer 20
+    x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_20', use_bias=False)(x)
+    x = BatchNormalization(name='norm_20')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-x = concatenate([skip_connection, x])
+    # Layer 21
+    skip_connection = Conv2D(64, (1,1), strides=(1,1), padding='same', name='conv_21', use_bias=False)(skip_connection)
+    skip_connection = BatchNormalization(name='norm_21')(skip_connection)
+    skip_connection = LeakyReLU(alpha=0.1)(skip_connection)
+    skip_connection = Lambda(space_to_depth_x2)(skip_connection)
 
-# Layer 22
-x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_22', use_bias=False)(x)
-x = BatchNormalization(name='norm_22')(x)
-x = LeakyReLU(alpha=0.1)(x)
+    x = concatenate([skip_connection, x])
 
-# Layer 23
-x = Conv2D(BOX * (4 + 1 + CLASS), (1,1), strides=(1,1), padding='same', name='conv_23')(x)
-output = Reshape((GRID_H, GRID_W, BOX, 4 + 1 + CLASS))(x)
+    # Layer 22
+    x = Conv2D(1024, (3,3), strides=(1,1), padding='same', name='conv_22', use_bias=False)(x)
+    x = BatchNormalization(name='norm_22')(x)
+    x = LeakyReLU(alpha=0.1)(x)
 
-# small hack to allow true_boxes to be registered when Keras build the model 
-# for more information: https://github.com/fchollet/keras/issues/2790
-output = Lambda(lambda args: args[0])([output, true_boxes])
+    # Layer 23
 
-model = Model([input_image, true_boxes], output)
+
+    x = Conv2D(BOX * (4 + 1 + CLASS), (1,1), strides=(1,1), padding='same', name='conv_23')(x)
+    output = Reshape((GRID_H, GRID_W, BOX, 4 + 1 + CLASS))(x)
+
+    # small hack to allow true_boxes to be registered when Keras build the model 
+    # for more information: https://github.com/fchollet/keras/issues/2790
+    output = Lambda(lambda args: args[0])([output, true_boxes])
+
+    model = Model([input_image, true_boxes], output)
+
+    return model
+
+model = make_model()
 
 
 def initialize_weights():
@@ -330,19 +338,6 @@ def custom_loss(y_true, y_pred):
     ### class mask: simply the position of the ground truth boxes (the predictors)
     class_mask = y_true[..., 4] * tf.gather(CLASS_WEIGHTS, true_box_class) * CLASS_SCALE       
     
-    """
-    Warm-up training
-    """
-    no_boxes_mask = tf.to_float(coord_mask < COORD_SCALE/2.)
-    seen = tf.assign_add(seen, 1.)
-    
-    true_box_xy, true_box_wh, coord_mask = tf.cond(tf.less(seen, WARM_UP_BATCHES), 
-                          lambda: [true_box_xy + (0.5 + cell_grid) * no_boxes_mask, 
-                                   true_box_wh + tf.ones_like(true_box_wh) * np.reshape(ANCHORS, [1,1,1,BOX,2]) * no_boxes_mask, 
-                                   tf.ones_like(coord_mask)],
-                          lambda: [true_box_xy, 
-                                   true_box_wh,
-                                   coord_mask])
     
     """
     Finalize the loss
@@ -358,25 +353,7 @@ def custom_loss(y_true, y_pred):
     loss_class = tf.reduce_sum(loss_class * class_mask) / (nb_class_box + 1e-6)
     
     loss = loss_xy + loss_wh + loss_conf + loss_class
-    
-    nb_true_box = tf.reduce_sum(y_true[..., 4])
-    nb_pred_box = tf.reduce_sum(tf.to_float(true_box_conf > 0.5) * tf.to_float(pred_box_conf > 0.3))
 
-    # """
-    # Debugging code
-    # """    
-    # current_recall = nb_pred_box/(nb_true_box + 1e-6)
-    # total_recall = tf.assign_add(total_recall, current_recall) 
-
-    # loss = tf.Print(loss, [tf.zeros((1))], message='Dummy Line \t', summarize=1000)
-    # loss = tf.Print(loss, [loss_xy], message='Loss XY \t', summarize=1000)
-    # loss = tf.Print(loss, [loss_wh], message='Loss WH \t', summarize=1000)
-    # loss = tf.Print(loss, [loss_conf], message='Loss Conf \t', summarize=1000)
-    # loss = tf.Print(loss, [loss_class], message='Loss Class \t', summarize=1000)
-    # loss = tf.Print(loss, [loss], message='Total Loss \t', summarize=1000)
-    # loss = tf.Print(loss, [current_recall], message='Current Recall \t', summarize=1000)
-    # loss = tf.Print(loss, [total_recall/seen], message='Average Recall \t', summarize=1000)
-    
     return loss
 
 
@@ -399,8 +376,8 @@ def normalize(image):
 train_imgs, seen_train_labels = parse_annotation(train_annot_folder, train_image_folder, labels=LABELS)
 train_batch = BatchGenerator(train_imgs, generator_config, norm=normalize)
 
-#valid_imgs, seen_valid_labels = parse_annotation(valid_annot_folder, valid_image_folder, labels=LABELS)
-#valid_batch = BatchGenerator(valid_imgs, generator_config, norm=normalize, jitter=False)
+valid_imgs, seen_valid_labels = parse_annotation(valid_annot_folder, valid_image_folder, labels=LABELS)
+valid_batch = BatchGenerator(valid_imgs, generator_config, norm=normalize, jitter=False)
 
 early_stop = EarlyStopping(monitor='val_loss', 
                            min_delta=0.001, 
@@ -408,51 +385,54 @@ early_stop = EarlyStopping(monitor='val_loss',
                            mode='min', 
                            verbose=1)
 
-checkpoint = ModelCheckpoint('weights_coco.h5', 
+checkpoint = ModelCheckpoint('weights_addressv1.h5', 
                              monitor='val_loss', 
                              verbose=1, 
                              save_best_only=True, 
                              mode='min', 
                              period=1)
 
+tensorboard = TensorBoard(log_dir="/home/brian/git/Skynet/logs/")
 
-optimizer = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+optimizer = Adam(lr=0.00001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 #optimizer = SGD(lr=1e-4, decay=0.0005, momentum=0.9)
 #optimizer = RMSprop(lr=1e-4, rho=0.9, epsilon=1e-08, decay=0.0)
 
 model.compile(loss=custom_loss, optimizer=optimizer)
 
-model.fit_generator(generator        = train_batch, 
-                    steps_per_epoch  = len(train_batch), 
-                    epochs           = 5, 
-                    verbose          = 1,
-                    # validation_data  = valid_batch,
-                    # validation_steps = len(valid_batch),
-                    callbacks        = [early_stop, checkpoint], 
-                    max_queue_size   = 3)
+model.fit_generator(generator           = train_batch, 
+                    steps_per_epoch     = len(train_batch), 
+                    epochs              = 100, 
+                    verbose             = 1,
+                    validation_data     = valid_batch,
+                    validation_steps    = len(valid_batch),
+                    callbacks           = [early_stop, checkpoint, tensorboard], 
+                    max_queue_size      = 10,
+                    use_multiprocessing = True,
+                    workers             = 3)
 
 
-#model.load_weights("weights_coco.h5")
-image = cv2.imread('/home/brian/git/Skynet/train/4750.jpg')
-dummy_array = np.zeros((1,1,1,1,TRUE_BOX_BUFFER,4))
+model.load_weights("weights_addressv1.h5")
 
-plt.figure(figsize=(10,10))
+for i in range(50, 55):
+    image = cv2.imread(f'/home/brian/git/Skynet/val/{i}.jpg')
+    dummy_array = np.zeros((1,1,1,1,TRUE_BOX_BUFFER,4))
 
-input_image = cv2.resize(image, (416, 416))
-input_image = input_image / 255.
-input_image = input_image[:,:,::-1]
-input_image = np.expand_dims(input_image, 0)
+    plt.figure(figsize=(5,5))
 
-netout = model.predict([input_image, dummy_array])
+    input_image = cv2.resize(image, (416, 416))
+    input_image = input_image / 255.
+    input_image = input_image[:,:,::-1]
+    input_image = np.expand_dims(input_image, 0)
 
-boxes = decode_netout(netout[0], 
-                      obj_threshold=OBJ_THRESHOLD,
-                      nms_threshold=NMS_THRESHOLD,
-                      anchors=ANCHORS, 
-                      nb_class=CLASS)
-            
-image = draw_boxes(image, boxes, labels=LABELS)
+    netout = model.predict([input_image, dummy_array])
 
-plt.imshow(image[:,:,::-1]); plt.show()
+    boxes = decode_netout(netout[0], 
+                          obj_threshold=OBJ_THRESHOLD,
+                          nms_threshold=NMS_THRESHOLD,
+                          anchors=ANCHORS, 
+                          nb_class=CLASS)
+                
+    image = draw_boxes(image, boxes, labels=LABELS)
 
-
+    plt.imshow(image[:,:,::-1]); plt.show()
