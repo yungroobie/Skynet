@@ -16,7 +16,8 @@ import os, cv2
 from preprocessing import parse_annotation, BatchGenerator
 from utils import WeightReader, decode_netout, draw_boxes
 
-LABELS = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
+
+LABELS = ['residential', 'other']
 
 IMAGE_H, IMAGE_W = 416, 416
 GRID_H,  GRID_W  = 13 , 13
@@ -32,22 +33,22 @@ OBJECT_SCALE     = 5.0
 COORD_SCALE      = 1.0
 CLASS_SCALE      = 1.0
 
-BATCH_SIZE       = 32
+BATCH_SIZE       = 24
 WARM_UP_BATCHES  = 0
 TRUE_BOX_BUFFER  = 50
 
-wt_path = 'yolov2.weights'                      
-train_image_folder = '/home/cjurg803/capstone/COCO_folder/train2014/'
-train_annot_folder = '/home/cjurg803/capstone/OUTPUT_FOLDER/train/'
-valid_image_folder = '/home/cjurg803/capstone/COCO_folder/val2014/'
-valid_annot_folder = '/home/cjurg803/capstone/OUTPUT_FOLDER/val/'
+wt_path = '/home/brian/git/Skynet/COCO/yolov2.weights'
+train_image_folder = '/home/brian/git/Skynet/train/'
+train_annot_folder = '/home/brian/git/Skynet/annots/'
+# valid_image_folder = '/home/brian/git/Skynet/COCO/val2014/'
+# valid_annot_folder = '/home/brian/git/Skynet/COCO/val2014/'
+
 
 def space_to_depth_x2(x):
     return tf.space_to_depth(x, block_size=2)
 
 input_image = Input(shape=(IMAGE_H, IMAGE_W, 3))
 true_boxes  = Input(shape=(1, 1, 1, TRUE_BOX_BUFFER , 4))
-
 # Layer 1
 x = Conv2D(32, (3,3), strides=(1,1), padding='same', name='conv_1', use_bias=False)(input_image)
 x = BatchNormalization(name='norm_1')(x)
@@ -179,45 +180,49 @@ output = Lambda(lambda args: args[0])([output, true_boxes])
 
 model = Model([input_image, true_boxes], output)
 
-weight_reader = WeightReader(wt_path)
 
-weight_reader.reset()
-nb_conv = 23
+def initialize_weights():
+    weight_reader = WeightReader(wt_path)
 
-for i in range(1, nb_conv+1):
-    conv_layer = model.get_layer('conv_' + str(i))
-    
-    if i < nb_conv:
-        norm_layer = model.get_layer('norm_' + str(i))
+    weight_reader.reset()
+    nb_conv = 23
+
+    for i in range(1, nb_conv+1):
+        conv_layer = model.get_layer('conv_' + str(i))
         
-        size = np.prod(norm_layer.get_weights()[0].shape)
+        if i < nb_conv:
+            norm_layer = model.get_layer('norm_' + str(i))
+            
+            size = np.prod(norm_layer.get_weights()[0].shape)
 
-        beta  = weight_reader.read_bytes(size)
-        gamma = weight_reader.read_bytes(size)
-        mean  = weight_reader.read_bytes(size)
-        var   = weight_reader.read_bytes(size)
+            beta  = weight_reader.read_bytes(size)
+            gamma = weight_reader.read_bytes(size)
+            mean  = weight_reader.read_bytes(size)
+            var   = weight_reader.read_bytes(size)
 
-        weights = norm_layer.set_weights([gamma, beta, mean, var])       
-        
-    if len(conv_layer.get_weights()) > 1:
-        bias   = weight_reader.read_bytes(np.prod(conv_layer.get_weights()[1].shape))
-        kernel = weight_reader.read_bytes(np.prod(conv_layer.get_weights()[0].shape))
-        kernel = kernel.reshape(list(reversed(conv_layer.get_weights()[0].shape)))
-        kernel = kernel.transpose([2,3,1,0])
-        conv_layer.set_weights([kernel, bias])
-    else:
-        kernel = weight_reader.read_bytes(np.prod(conv_layer.get_weights()[0].shape))
-        kernel = kernel.reshape(list(reversed(conv_layer.get_weights()[0].shape)))
-        kernel = kernel.transpose([2,3,1,0])
-        conv_layer.set_weights([kernel])
+            weights = norm_layer.set_weights([gamma, beta, mean, var])       
+            
+        if len(conv_layer.get_weights()) > 1:
+            bias   = weight_reader.read_bytes(np.prod(conv_layer.get_weights()[1].shape))
+            kernel = weight_reader.read_bytes(np.prod(conv_layer.get_weights()[0].shape))
+            kernel = kernel.reshape(list(reversed(conv_layer.get_weights()[0].shape)))
+            kernel = kernel.transpose([2,3,1,0])
+            conv_layer.set_weights([kernel, bias])
+        else:
+            kernel = weight_reader.read_bytes(np.prod(conv_layer.get_weights()[0].shape))
+            kernel = kernel.reshape(list(reversed(conv_layer.get_weights()[0].shape)))
+            kernel = kernel.transpose([2,3,1,0])
+            conv_layer.set_weights([kernel])
 
-layer   = model.layers[-4] # the last convolutional layer
-weights = layer.get_weights()
+    layer   = model.layers[-4] # the last convolutional layer
+    weights = layer.get_weights()
 
-new_kernel = np.random.normal(size=weights[0].shape)/(GRID_H*GRID_W)
-new_bias   = np.random.normal(size=weights[1].shape)/(GRID_H*GRID_W)
+    new_kernel = np.random.normal(size=weights[0].shape)/(GRID_H*GRID_W)
+    new_bias   = np.random.normal(size=weights[1].shape)/(GRID_H*GRID_W)
 
-layer.set_weights([new_kernel, new_bias])
+    layer.set_weights([new_kernel, new_bias])
+
+initialize_weights()
 
 def custom_loss(y_true, y_pred):
     mask_shape = tf.shape(y_true)[:4]
@@ -262,7 +267,7 @@ def custom_loss(y_true, y_pred):
     true_wh_half = true_box_wh / 2.
     true_mins    = true_box_xy - true_wh_half
     true_maxes   = true_box_xy + true_wh_half
-
+    
     pred_wh_half = pred_box_wh / 2.
     pred_mins    = pred_box_xy - pred_wh_half
     pred_maxes   = pred_box_xy + pred_wh_half       
@@ -304,7 +309,7 @@ def custom_loss(y_true, y_pred):
     pred_wh_half = pred_wh / 2.
     pred_mins    = pred_xy - pred_wh_half
     pred_maxes   = pred_xy + pred_wh_half    
-
+    
     intersect_mins  = tf.maximum(pred_mins,  true_mins)
     intersect_maxes = tf.minimum(pred_maxes, true_maxes)
     intersect_wh    = tf.maximum(intersect_maxes - intersect_mins, 0.)
@@ -338,8 +343,7 @@ def custom_loss(y_true, y_pred):
                           lambda: [true_box_xy, 
                                    true_box_wh,
                                    coord_mask])
-
-
+    
     """
     Finalize the loss
     """
@@ -358,22 +362,23 @@ def custom_loss(y_true, y_pred):
     nb_true_box = tf.reduce_sum(y_true[..., 4])
     nb_pred_box = tf.reduce_sum(tf.to_float(true_box_conf > 0.5) * tf.to_float(pred_box_conf > 0.3))
 
-    """
-    Debugging code
-    """    
-    current_recall = nb_pred_box/(nb_true_box + 1e-6)
-    total_recall = tf.assign_add(total_recall, current_recall) 
+    # """
+    # Debugging code
+    # """    
+    # current_recall = nb_pred_box/(nb_true_box + 1e-6)
+    # total_recall = tf.assign_add(total_recall, current_recall) 
 
-    loss = tf.Print(loss, [tf.zeros((1))], message='Dummy Line \t', summarize=1000)
-    loss = tf.Print(loss, [loss_xy], message='Loss XY \t', summarize=1000)
-    loss = tf.Print(loss, [loss_wh], message='Loss WH \t', summarize=1000)
-    loss = tf.Print(loss, [loss_conf], message='Loss Conf \t', summarize=1000)
-    loss = tf.Print(loss, [loss_class], message='Loss Class \t', summarize=1000)
-    loss = tf.Print(loss, [loss], message='Total Loss \t', summarize=1000)
-    loss = tf.Print(loss, [current_recall], message='Current Recall \t', summarize=1000)
-    loss = tf.Print(loss, [total_recall/seen], message='Average Recall \t', summarize=1000)
+    # loss = tf.Print(loss, [tf.zeros((1))], message='Dummy Line \t', summarize=1000)
+    # loss = tf.Print(loss, [loss_xy], message='Loss XY \t', summarize=1000)
+    # loss = tf.Print(loss, [loss_wh], message='Loss WH \t', summarize=1000)
+    # loss = tf.Print(loss, [loss_conf], message='Loss Conf \t', summarize=1000)
+    # loss = tf.Print(loss, [loss_class], message='Loss Class \t', summarize=1000)
+    # loss = tf.Print(loss, [loss], message='Total Loss \t', summarize=1000)
+    # loss = tf.Print(loss, [current_recall], message='Current Recall \t', summarize=1000)
+    # loss = tf.Print(loss, [total_recall/seen], message='Average Recall \t', summarize=1000)
     
     return loss
+
 
 generator_config = {
     'IMAGE_H'         : IMAGE_H, 
@@ -392,24 +397,10 @@ def normalize(image):
     return image / 255.
 
 train_imgs, seen_train_labels = parse_annotation(train_annot_folder, train_image_folder, labels=LABELS)
-### write parsed annotations to pickle for fast retrieval next time
-#with open('train_imgs', 'wb') as fp:
-#    pickle.dump(train_imgs, fp)
-
-### read saved pickle of parsed annotations
-#with open ('train_imgs', 'rb') as fp:
-#    train_imgs = pickle.load(fp)
 train_batch = BatchGenerator(train_imgs, generator_config, norm=normalize)
 
-valid_imgs, seen_valid_labels = parse_annotation(valid_annot_folder, valid_image_folder, labels=LABELS)
-### write parsed annotations to pickle for fast retrieval next time
-#with open('valid_imgs', 'wb') as fp:
-#    pickle.dump(valid_imgs, fp)
-
-### read saved pickle of parsed annotations
-#with open ('valid_imgs', 'rb') as fp:
-#    valid_imgs = pickle.load(fp)
-valid_batch = BatchGenerator(valid_imgs, generator_config, norm=normalize, jitter=False)
+#valid_imgs, seen_valid_labels = parse_annotation(valid_annot_folder, valid_image_folder, labels=LABELS)
+#valid_batch = BatchGenerator(valid_imgs, generator_config, norm=normalize, jitter=False)
 
 early_stop = EarlyStopping(monitor='val_loss', 
                            min_delta=0.001, 
@@ -424,13 +415,8 @@ checkpoint = ModelCheckpoint('weights_coco.h5',
                              mode='min', 
                              period=1)
 
-tb_counter  = len([log for log in os.listdir(os.path.expanduser('~/logs/')) if 'coco_' in log]) + 1
-tensorboard = TensorBoard(log_dir=os.path.expanduser('~/logs/') + 'coco_' + '_' + str(tb_counter), 
-                          histogram_freq=0, 
-                          write_graph=True, 
-                          write_images=False)
 
-optimizer = Adam(lr=0.5e-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+optimizer = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 #optimizer = SGD(lr=1e-4, decay=0.0005, momentum=0.9)
 #optimizer = RMSprop(lr=1e-4, rho=0.9, epsilon=1e-08, decay=0.0)
 
@@ -438,11 +424,35 @@ model.compile(loss=custom_loss, optimizer=optimizer)
 
 model.fit_generator(generator        = train_batch, 
                     steps_per_epoch  = len(train_batch), 
-                    epochs           = 100, 
+                    epochs           = 5, 
                     verbose          = 1,
-                    validation_data  = valid_batch,
-                    validation_steps = len(valid_batch),
-                    callbacks        = [early_stop, checkpoint, tensorboard], 
+                    # validation_data  = valid_batch,
+                    # validation_steps = len(valid_batch),
+                    callbacks        = [early_stop, checkpoint], 
                     max_queue_size   = 3)
 
-model.load_weights("weights_coco.h5")
+
+#model.load_weights("weights_coco.h5")
+image = cv2.imread('/home/brian/git/Skynet/train/4750.jpg')
+dummy_array = np.zeros((1,1,1,1,TRUE_BOX_BUFFER,4))
+
+plt.figure(figsize=(10,10))
+
+input_image = cv2.resize(image, (416, 416))
+input_image = input_image / 255.
+input_image = input_image[:,:,::-1]
+input_image = np.expand_dims(input_image, 0)
+
+netout = model.predict([input_image, dummy_array])
+
+boxes = decode_netout(netout[0], 
+                      obj_threshold=OBJ_THRESHOLD,
+                      nms_threshold=NMS_THRESHOLD,
+                      anchors=ANCHORS, 
+                      nb_class=CLASS)
+            
+image = draw_boxes(image, boxes, labels=LABELS)
+
+plt.imshow(image[:,:,::-1]); plt.show()
+
+
