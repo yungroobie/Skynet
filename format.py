@@ -45,13 +45,13 @@ y = data['y']
 datas = []
 for i in range(X.shape[0]):
     # fix class labels
-    y[i, :, 4] = [0 if j <= 9 else 1 for j in y[i, :, 4]]
+    y[i, :, 4] = [0 if j <= 9 else 2 if j == 57 else 1 for j in y[i, :, 4]]
     
     temp = [X[i], y[i]]
     datas.append(temp)
 
 data = np.array(datas)
-np.random.shuffle(datas)
+np.random.shuffle(data)
 
 del(X)
 del(y)
@@ -61,6 +61,8 @@ del(y)
 for idx, img in enumerate(data):
     adj = np.zeros((1, 5))
     for box in img[1]:
+        if box[4]:
+            box == 4
         # check if box is 'proper'
         if (box[0] < box[2]) and (box[1] < box[3]):
             if np.count_nonzero(adj) == 0:
