@@ -12,7 +12,7 @@ from tqdm import tqdm
 from imgaug import augmenters as iaa
 import numpy as np
 import pickle
-import os, cv2
+import os, cv2, time
 from preprocessing import parse_annotation, BatchGenerator
 from utils import WeightReader, decode_netout, draw_boxes
 
@@ -33,7 +33,7 @@ OBJECT_SCALE     = 5.0
 COORD_SCALE      = 1.0
 CLASS_SCALE      = 1.0
 
-BATCH_SIZE       = 24
+BATCH_SIZE       = 16
 WARM_UP_BATCHES  = 0
 TRUE_BOX_BUFFER  = 50
 
@@ -374,9 +374,11 @@ def normalize(image):
     return image / 255.
 
 train_imgs, seen_train_labels = parse_annotation(train_annot_folder, train_image_folder, labels=LABELS)
+print(seen_train_labels)
 train_batch = BatchGenerator(train_imgs, generator_config, norm=normalize)
 
 valid_imgs, seen_valid_labels = parse_annotation(valid_annot_folder, valid_image_folder, labels=LABELS)
+print(seen_valid_labels)
 valid_batch = BatchGenerator(valid_imgs, generator_config, norm=normalize, jitter=False)
 
 early_stop = EarlyStopping(monitor='val_loss', 
@@ -392,7 +394,7 @@ checkpoint = ModelCheckpoint('weights_addressv1.h5',
                              mode='min', 
                              period=1)
 
-tensorboard = TensorBoard(log_dir="/home/brian/git/Skynet/logs/")
+tensorboard = TensorBoard(log_dir=f"/home/brian/git/Skynet/logs/{time.time()}")
 
 optimizer = Adam(lr=0.00001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 #optimizer = SGD(lr=1e-4, decay=0.0005, momentum=0.9)
@@ -414,7 +416,7 @@ model.fit_generator(generator           = train_batch,
 
 model.load_weights("weights_addressv1.h5")
 
-for i in range(50, 55):
+for i in range(983, 987):
     image = cv2.imread(f'/home/brian/git/Skynet/val/{i}.jpg')
     dummy_array = np.zeros((1,1,1,1,TRUE_BOX_BUFFER,4))
 

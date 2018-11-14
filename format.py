@@ -42,45 +42,36 @@ data = np.load('data.npz')
 X = data['x']
 y = data['y']
 
-datas = []
+data = []
 for i in range(X.shape[0]):
     # fix class labels
+    # 0 for residential, 1 for commercial/other, 2 for images to delete
     y[i, :, 4] = [0 if j <= 9 else 2 if j == 57 else 1 for j in y[i, :, 4]]
     
     temp = [X[i], y[i]]
-    datas.append(temp)
+    data.append(temp)
 
-data = np.array(datas)
-np.random.shuffle(data)
-
+# Free up some memory
 del(X)
 del(y)
 
-# eliminate bad boxes and zero-padding
+# Shuffle data
+data = np.array(data)
+np.random.shuffle(data)
 
+# eliminate bad boxes and zero-padding
 for idx, img in enumerate(data):
     adj = np.zeros((1, 5))
     for box in img[1]:
-        if box[4]:
-            box == 4
+        # Don't add boxes with label of 2
+        if box[4] == 2:
+            continue
         # check if box is 'proper'
         if (box[0] < box[2]) and (box[1] < box[3]):
             if np.count_nonzero(adj) == 0:
                 adj = np.expand_dims(box, 0)
             else:
                 adj = np.vstack((adj, box))
-
-    data[idx][1] = adj
-
-# Remove images with no objects
-copy = data.copy()
-for idx, img in enumerate(data):
-    if np.count_nonzero(img[1]) == 0:
-        copy = np.delete(data, idx, 0)
-
-data = copy.copy()
-del(copy)
-
-for idx, img in enumerate(data):
-    imsave(f'{idx}.jpg', img[0])
-    to_xml(idx, img[1])
+    if np.count_nonzero(adj) != 0:
+        imsave(f'{idx}.jpg', img[0])
+        to_xml(idx, adj)
