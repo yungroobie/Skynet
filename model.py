@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use("Agg")
+
 from keras.models import Sequential, Model
 from keras.layers import Reshape, Activation, Conv2D, Input, MaxPooling2D, BatchNormalization, Flatten, Dense, Lambda
 from keras.layers.advanced_activations import LeakyReLU
@@ -238,7 +241,7 @@ def custom_loss(y_true, y_pred):
     cell_x = tf.to_float(tf.reshape(tf.tile(tf.range(GRID_W), [GRID_H]), (1, GRID_H, GRID_W, 1, 1)))
     cell_y = tf.transpose(cell_x, (0,2,1,3,4))
 
-    cell_grid = tf.tile(tf.concat([cell_x,cell_y], -1), [BATCH_SIZE, 1, 1, 5, 1])
+    cell_grid = tf.tile(tf.concat([cell_x,cell_y], -1), [BATCH_SIZE, 1, 1, BOX, 1])
     
     coord_mask = tf.zeros(mask_shape)
     conf_mask  = tf.zeros(mask_shape)
@@ -416,11 +419,12 @@ model.fit_generator(generator           = train_batch,
 
 model.load_weights("weights_addressv1.h5")
 
-for i in range(983, 987):
-    image = cv2.imread(f'/home/brian/git/Skynet/val/{i}.jpg')
+os.chdir("val")
+for img in os.listdir():
+    image = cv2.imread(img)
     dummy_array = np.zeros((1,1,1,1,TRUE_BOX_BUFFER,4))
 
-    plt.figure(figsize=(5,5))
+    fig = plt.figure(figsize=(5,5))
 
     input_image = cv2.resize(image, (416, 416))
     input_image = input_image / 255.
@@ -437,4 +441,5 @@ for i in range(983, 987):
                 
     image = draw_boxes(image, boxes, labels=LABELS)
 
-    plt.imshow(image[:,:,::-1]); plt.show()
+    fig = plt.imshow(image[:,:,::-1])
+    plt.savefig(f"/home/btyuhas/{img}")
