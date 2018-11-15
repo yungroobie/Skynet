@@ -26,7 +26,7 @@ CLASS            = len(LABELS)
 CLASS_WEIGHTS    = np.ones(CLASS, dtype='float32')
 OBJ_THRESHOLD    = 0.5
 NMS_THRESHOLD    = 0.45
-ANCHORS          = [0.57273, 0.677385, 1.87446, 2.06253, 3.33843, 5.47434, 7.88282, 3.52778, 9.77052, 9.16828]
+ANCHORS          = [0.72, 0.73, 1.06, 1.37, 1.23, 1.00, 1.58, 1.51, 3.05, 3.08]
 
 NO_OBJECT_SCALE  = 1.0
 OBJECT_SCALE     = 5.0
@@ -409,9 +409,9 @@ model.fit_generator(generator           = train_batch,
                     validation_data     = valid_batch,
                     validation_steps    = len(valid_batch),
                     callbacks           = [early_stop, checkpoint, tensorboard], 
-                    max_queue_size      = 10,
+                    max_queue_size      = 30,
                     use_multiprocessing = True,
-                    workers             = 3)
+                    workers             = 10)
 
 
 model.load_weights("weights_addressv1.h5")
