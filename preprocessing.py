@@ -73,7 +73,32 @@ class BatchGenerator(Sequence):
         self.norm    = norm
 
         self.anchors = [BoundBox(0, 0, config['ANCHORS'][2*i], config['ANCHORS'][2*i+1]) for i in range(int(len(config['ANCHORS'])//2))]
+        sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 
+        self.aug_pipe = iaa.Sequential(
+            [
+                iaa.SomeOf((0, 5),
+                    [
+                        iaa.OneOf([
+                            iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0
+                            iaa.AverageBlur(k=(2, 7)), # blur image using local means with kernel sizes between 2 and 7
+                            iaa.MedianBlur(k=(3, 11)), # blur image using local medians with kernel sizes between 2 and 7
+                        ]),
+                        iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)), # sharpen images
+
+                        iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05*255), per_channel=0.5), # add gaussian noise to images
+                        iaa.OneOf([
+                            iaa.Dropout((0.01, 0.1), per_channel=0.5), # randomly remove up to 10% of the pixels
+                        ]),
+                        iaa.Add((-10, 10), per_channel=0.5), # change brightness of images (by -10 to 10 of original value)
+                        iaa.Multiply((0.5, 1.5), per_channel=0.5), # change brightness of images (50-150% of original value)
+                        iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5), # improve or worsen the contrast
+                    ],
+                    random_order=True
+                )
+            ],
+            random_order=True
+        )
         if shuffle: np.random.shuffle(self.images)
 
     def __len__(self):
@@ -208,6 +233,7 @@ class BatchGenerator(Sequence):
             flip = np.random.binomial(1, .5)
             if flip > 0.5: image = cv2.flip(image, 1)      
             
+            image = self.aug_pipe.augment_image(image)
         # resize the image to standard size
         image = cv2.resize(image, (self.config['IMAGE_H'], self.config['IMAGE_W']))
         image = image[:,:,::-1]
