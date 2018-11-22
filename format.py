@@ -67,7 +67,7 @@ for idx, img in enumerate(data):
         if box[4] == 2:
             continue
         # check if box is 'proper'
-        size = np.uint32(box[2]-box[0]) - np.uint32(box[3] - box[1])
+        size = np.uint32(box[2]-box[0]) * np.uint32(box[3] - box[1])
         if (box[0] < box[2]) and (box[1] < box[3]) and size > 64:
             if np.count_nonzero(adj) == 0:
                 adj = np.expand_dims(box, 0)
