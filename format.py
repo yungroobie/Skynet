@@ -38,7 +38,7 @@ def to_xml(filename, annots):
     file.write(data)
     file.close()
 
-data = np.load('/home/btyuhas/data.npz')
+data = np.load('data.npz')
 X = data['x']
 y = data['y']
 
