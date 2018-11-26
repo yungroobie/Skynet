@@ -6,3 +6,5 @@ YOLOv3/backend.h5
 YOLOv3/skynet_train_weights.h5
 YOLOv3/yolov3.weights
 data.npz
+YOLOv3/output
+*.pbs.*
