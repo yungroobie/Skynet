@@ -4,6 +4,7 @@ import os
 import argparse
 import json
 import cv2
+import pickle
 from utils.utils import get_yolo_boxes, makedirs
 from utils.bbox import draw_boxes
 from keras.models import load_model
@@ -115,7 +116,12 @@ def _main_(args):
 
             # predict the bounding boxes
             boxes = get_yolo_boxes(infer_model, [image], net_h, net_w, config['model']['anchors'], obj_thresh, nms_thresh)[0]
-
+            
+            filename = output_path + image_path.split('/')[-1] + ".pkl"
+            outfile = open(filename, 'wb')
+            pickle.dump(boxes, outfile)
+            outfile.close()
+            
             # draw bounding boxes on the image using labels
             draw_boxes(image, boxes, config['model']['labels'], obj_thresh) 
      
