@@ -6,7 +6,9 @@ import pickle
 from utils.utils import do_nms
 from utils.bbox import draw_boxes
 
+
 img = plt.imread("7_old.tif")[:, :, [0,1,2]]
+img = np.array(img).copy()
 t = 5
 e = 100
 n = img.shape[0]
@@ -36,14 +38,20 @@ for tile in os.listdir():
 	tile_boxes = pickle.load(open(tile, 'rb'))
 	# adjust boxes
 	for box in tile_boxes:
-		box.xmin = box.xmin + finalTileSize * row
-		box.xmax = box.xmax + finalTileSize * row
-		box.ymin = box.ymin + finalTileSize * col
-		box.ymax = box.ymax + finalTileSize * col
+		box.xmin = box.xmin + col * (finalTileSize - 2*e)
+		box.xmax = box.xmax + col * (finalTileSize - 2*e)
+		box.ymin = box.ymin + row * (finalTileSize - 2*e)
+		box.ymax = box.ymax + row * (finalTileSize - 2*e)
 
-		boxes.append()
+		boxes.append(box)
 
 do_nms(boxes, .35)
+
+filename = '../old.pkl'
+outfile = open(filename, 'wb')
+pickle.dump(boxes, outfile)
+outfile.close()
+
 out = draw_boxes(img, boxes, ['other', 'residential'], 0.35)
 
 
