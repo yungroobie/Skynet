@@ -116,20 +116,12 @@ def _main_(args):
 
             # predict the bounding boxes
             boxes = get_yolo_boxes(infer_model, [image], net_h, net_w, config['model']['anchors'], obj_thresh, nms_thresh)[0]
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> aadf60661c66393ddfbde18fb39e1b9bd45ea6bd
             filename = output_path + image_path.split('/')[-1] + ".pkl"
             outfile = open(filename, 'wb')
             pickle.dump(boxes, outfile)
             outfile.close()
-<<<<<<< HEAD
 
-=======
-            
->>>>>>> aadf60661c66393ddfbde18fb39e1b9bd45ea6bd
             # draw bounding boxes on the image using labels
             draw_boxes(image, boxes, config['model']['labels'], obj_thresh) 
      

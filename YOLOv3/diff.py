@@ -71,8 +71,13 @@ def do_nms(boxes, nms_thresh):
                     boxes[index_i].classes[c] = 0
 
 do_nms(new, .35)
-img = plt.imread("../7_new.tif")[:, :, [0,1,2]]
+img = plt.imread("new.tif")[:, :, [0,1,2]]
 img = np.array(img).copy()
 
 out = draw_boxes(img, new, ['residential', 'other'], .35)
 imsave('diff.png', out)
+
+filename = 'diff.pkl'
+outfile = open(filename, 'wb')
+pickle.dump(new, outfile)
+outfile.close()

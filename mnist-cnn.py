@@ -1,3 +1,5 @@
+# A simple keras example -------------------------------------------------------
+
 import keras
 from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 
