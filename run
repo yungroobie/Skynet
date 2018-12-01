@@ -1,7 +1,0 @@
-#!/bin/bash
-
-#label-maker download
-label-maker labels
-label-maker preview -n 10
-label-maker images
-label-maker package
