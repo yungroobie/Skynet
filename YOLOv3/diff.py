@@ -5,8 +5,9 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-old = pickle.load(open('old.pkl', 'rb'))
-new = pickle.load(open('new.pkl', 'rb'))
+
+old = pickle.load(open('../old.pkl', 'rb'))
+new = pickle.load(open('../new.pkl', 'rb'))
 
 for box in old:
     new.append(box)
@@ -71,13 +72,13 @@ def do_nms(boxes, nms_thresh):
                     boxes[index_i].classes[c] = 0
 
 do_nms(new, .35)
-img = plt.imread("new.tif")[:, :, [0,1,2]]
+img = plt.imread("../new.tif")[:, :, [0,1,2]]
 img = np.array(img).copy()
 
 out = draw_boxes(img, new, ['residential', 'other'], .35)
-imsave('diff.png', out)
+imsave('../diff.png', out)
 
-filename = 'diff.pkl'
+filename = '../diff.pkl'
 outfile = open(filename, 'wb')
 pickle.dump(new, outfile)
 outfile.close()

@@ -1,6 +1,6 @@
+import os
 import matplotlib.pyplot as plt
 from scipy.misc import imsave
-import os
 import numpy as np
 import pickle
 from utils.utils import do_nms
@@ -8,8 +8,7 @@ from utils.bbox import draw_boxes
 
 
 for file in ['old', 'new']:
-
-	img = plt.imread(f"{file}.tif")[:, :, [0,1,2]]
+	img = plt.imread(f"../{file}.tif")[:, :, [0,1,2]]
 	img = np.array(img).copy()
 	t = 5
 	e = 100
@@ -46,15 +45,15 @@ for file in ['old', 'new']:
 
 			boxes.append(box)
 
-	do_nms(boxes, .35)
+	do_nms(boxes, .6)
 
-	filename = f'{file}.pkl'
+	filename = f'../{file}.pkl'
 	outfile = open(filename, 'wb')
 	pickle.dump(boxes, outfile)
 	outfile.close()
 
 	out = draw_boxes(img, boxes, ['other', 'residential'], 0.35)
-	imsave(f'{file}.png', out)
+	imsave(f'../{file}_labeled.png', out)
 
 os.system("python diff.py")
-os.system("rm old.pkl new.pkl tiles/* output/*")
+os.system("rm ../old.pkl ../new.pkl tiles/* output/*")
