@@ -69,7 +69,7 @@
     { "name": "ruins", "filter": ["==", "building", "ruins"] , "buffer":3},
     { "name": "water_tower", "filter": ["==", "building", "water_tower"] , "buffer":3}
   ],
-  "imagery": "http://a.tiles.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg?access_token=pk.eyJ1IjoiYnR5dWhhcyIsImEiOiJjam12MHA1eWswZXA4M2twa3E0b3dwYmo3In0.YjTO2XaVpoOsC7FAU5bTAg",
+  "imagery": "http://a.tiles.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg?access_token=PLACE_KEY_HERE",
   "background_ratio": 1,
   "ml_type": "object-detection" 
 }
