@@ -55,5 +55,5 @@ for file in ['old', 'new']:
 	out = draw_boxes(img, boxes, ['other', 'residential'], 0.35)
 	imsave(f'../{file}_labeled.png', out)
 
-os.system("python diff.py")
+import diff
 os.system("rm ../old.pkl ../new.pkl tiles/* output/*")
