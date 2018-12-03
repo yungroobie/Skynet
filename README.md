@@ -37,9 +37,12 @@ python canvassing_square.py
 Make sure the before and after images are in the root Skynet directory and are named ```old.tif``` and ```new.tif``` respectivly. In the current version, these images will be broken down into tiles to better resemble our training set; this way the model will be able to make accurate predictions. The model will then identify residences in the images and highlight the differences, indicating where new addresses have appeared, and stitch the tiles back together. These differences can be seen in the ```diff.png``` output image.  
 
 
+# Training/Validation Set Creation
+In order to create our training set, we took advantage of the Label Maker package in python. To create your own training/validation 
+set using label maker, start by editing the ```config.json``` file specific to label maker. Specific coordinates if desired can be entered in, as well as specific class labels. A free access token from open map box must be obtained via their website and placed in the ```config.json``` file before any data can be download. Once the ```config.json``` file has been configured accordingly, run ```run.py``` to obtain the labeled training images. Once these images have been obtained, we recommend running the ```validate-labels.ipynb``` to manually filter out the more poorly labeled images. Finally, run ```split.sh``` to split the data into training and validation sets. 
+
 # TODO 
 + Finish GUI
 + Canvassing on rectangular images
 + Distiction between if addresses were added or removed
-+ Label Maker documentation
 
