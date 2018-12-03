@@ -1,6 +1,6 @@
 # Skynet
 Welcome to Skynet, an automated address canvassing model using satellite imagery.
-###### We strongly reccomend running this on linux
+###### *We strongly reccomend running this on linux*
 
 # 1. Preprocessing and Config file
 First, ensure your data has been partitioned into training and validation sets. Then place the images and the corresponding the labels into two separete directories for each set. This should produce four directories: 
