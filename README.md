@@ -2,7 +2,7 @@
 Welcome to Skynet, an automated address canvassing model using satellite imagery.
 
 # 1. Preprocessing and Config file
-First, ensure your data has been partitioned into training and validation sets. Then place the images and the corresponding the labels into two separete directories for each set. This should produce four directories: 
+First, ensure your data has been partitioned into training and validation sets. Then place the images and the corresponding the labels into two separate directories for each set. This should produce four directories: 
 ```python
     /train_images/ #Directory for training image files
     /train_annotations/ #Directory for training annotation labels
@@ -26,7 +26,7 @@ python train.py -c config.json
 
 Training the model will produce a weights file that contains the model weights for your particular data set. 
 This weights file name is designated by the ```saved_weights_name``` field in the config file and can be used
-as a checkpoint for restarting training. Training concludes after 5 consecutive epochs did not have an improve in loss. 
+as a checkpoint for restarting training. Training concludes after 5 consecutive epochs did not have an improvement in loss. 
 
 # 3. Address Canvassing 
 To perform address canvassing on a set of before and after images, run the appropriate canvassing command. For square images, that would be:
