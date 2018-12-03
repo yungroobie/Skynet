@@ -41,4 +41,5 @@ Make sure the before and after images are in the root Skynet directory and are n
 + Finish GUI
 + Canvassing on rectangular images
 + Distiction between if addresses were added or removed
++ Label Maker documentation
 
